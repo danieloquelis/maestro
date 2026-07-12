@@ -1,0 +1,19 @@
+{
+  "name": "maestro-mayhem",
+  "version": "1.0.0",
+  "description": "MAESTRO MAYHEM — a 2.5D fighting game of duelling classical composers, bundled for CDN delivery via jsDelivr.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "build:watch": "node build.mjs --watch",
+    "serve": "node build.mjs --serve",
+    "release": "npm run build && git add dist/maestro.js && git commit -m \"build: release bundle\" && git push"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0"
+  },
+  "dependencies": {
+    "three": "0.160.0"
+  }
+}
