@@ -1461,6 +1461,143 @@ const App = (() => {
   return { init:initThree, wire:wireInput, get renderer(){return renderer;}, key:null, rimA:null, rimB:null };
 })();
 
+/* ============================ SELF-MOUNT UI ============================= *
+ * The bundle injects its own stylesheet + HUD/menu DOM so the host page needs
+ * nothing but <script src=".../maestro.js">. This keeps the HTML shell a true
+ * one-liner and lets us ship UI/CSS changes over the CDN (OTA) too.
+ * If the page already provides these elements (e.g. #game), we don't dup them.
+ */
+function mountUI() {
+  // 1) stylesheet (skip if the host page already declared it)
+  if (!document.getElementById('mm-style')) {
+    const style = document.createElement('style');
+    style.id = 'mm-style';
+    style.textContent = `
+:root{--paper:#F2E8D5;--stain:#E0D3B8;--sepia:#4A3B2A;--ink:#1A1511;--gold:#C9962E;--verm:#D4472B;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--ink);}
+#game{position:fixed;inset:0;}
+canvas{display:block;}
+#hud{position:fixed;inset:0;pointer-events:none;font-family:"Georgia","Times New Roman",serif;color:var(--sepia);text-shadow:0 1px 0 rgba(242,232,213,.5);}
+.hud-top{position:absolute;top:18px;left:0;right:0;display:flex;justify-content:space-between;padding:0 26px;}
+.fighter-panel{width:40%;}.fighter-panel.right{text-align:right;}
+.name-row{font-size:20px;letter-spacing:2px;font-variant:small-caps;font-weight:bold;}
+.harmony-track{height:22px;margin-top:6px;border:3px solid var(--sepia);background:var(--stain);border-radius:2px;position:relative;overflow:hidden;box-shadow:inset 0 2px 4px rgba(26,21,17,.35);}
+.harmony-fill{position:absolute;top:0;bottom:0;background:var(--sepia);transition:width .18s ease;}
+.harmony-fill.right{right:0;}.harmony-flash{position:absolute;inset:0;background:var(--verm);opacity:0;}
+.cres-wrap{margin-top:7px;height:16px;position:relative;}.cres-wrap svg{position:absolute;top:0;height:16px;}
+.rounds{margin-top:4px;font-size:13px;letter-spacing:1px;opacity:.85;}
+.pip{display:inline-block;width:11px;height:11px;border:2px solid var(--sepia);border-radius:50%;margin-right:4px;vertical-align:middle;}.pip.win{background:var(--gold);}
+.hud-center{position:absolute;top:16px;left:50%;transform:translateX(-50%);text-align:center;}
+.movement-label{font-size:15px;letter-spacing:3px;font-variant:small-caps;}.round-timer{font-size:34px;font-weight:bold;}
+#announce{position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);font-size:74px;font-weight:bold;letter-spacing:6px;font-variant:small-caps;color:var(--sepia);opacity:0;text-align:center;white-space:nowrap;text-shadow:0 3px 0 rgba(242,232,213,.6),0 0 26px rgba(201,150,46,.4);}
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:"Georgia",serif;color:var(--sepia);text-align:center;z-index:20;}
+.screen.hidden{display:none;}#hud.hidden{display:none;}
+#title .logo-sub{position:absolute;bottom:24%;font-size:20px;letter-spacing:4px;font-variant:small-caps;animation:blink 1.4s infinite;}
+@keyframes blink{0%,100%{opacity:.25}50%{opacity:1}}
+#select .sel-head{position:absolute;top:6%;font-size:30px;letter-spacing:5px;font-variant:small-caps;font-weight:bold;}
+#select .roster{position:absolute;bottom:20%;display:flex;gap:26px;}
+#select .card{width:150px;padding:12px 8px;border:3px solid var(--sepia);background:rgba(242,232,213,.72);border-radius:6px;opacity:.55;transform:scale(.94);transition:all .18s;}
+#select .card.active{opacity:1;transform:scale(1.06);box-shadow:0 0 0 3px var(--gold),0 8px 30px rgba(26,21,17,.4);}
+#select .card .cn{font-size:19px;font-weight:bold;font-variant:small-caps;letter-spacing:1px;}
+#select .card .cd{font-size:12px;margin-top:4px;opacity:.8;min-height:30px;}
+#select .stage-row{position:absolute;bottom:8%;font-size:15px;letter-spacing:2px;}#select .stage-row .k{color:var(--verm);font-weight:bold;}
+#select .diffbox{position:absolute;top:20%;font-size:16px;letter-spacing:2px;}
+#select .diffbox .opt{display:inline-block;margin:0 10px;padding:3px 12px;border:2px solid transparent;border-radius:4px;}
+#select .diffbox .opt.on{border-color:var(--gold);background:rgba(201,150,46,.2);font-weight:bold;}
+#select .side-label{position:absolute;top:14%;font-size:14px;letter-spacing:2px;opacity:.7;}
+#pause{background:rgba(26,21,17,.78);color:var(--paper);}
+#pause .box{max-width:820px;width:90%;max-height:82%;overflow:auto;background:rgba(242,232,213,.94);color:var(--sepia);border:4px solid var(--sepia);border-radius:8px;padding:22px 30px;}
+#pause h2{font-variant:small-caps;letter-spacing:3px;margin-bottom:10px;text-align:center;}
+#pause .cols{display:flex;gap:24px;flex-wrap:wrap;}#pause .col{flex:1;min-width:280px;}
+#pause .mv{margin:6px 0;}#pause .mv b{font-variant:small-caps;}
+#pause .notes{font-family:"Courier New",monospace;color:var(--verm);font-weight:bold;letter-spacing:2px;}
+#pause .ctrl{font-family:"Courier New",monospace;font-size:13px;line-height:1.7;}
+#pause .fname{font-weight:bold;font-size:17px;font-variant:small-caps;border-bottom:2px solid var(--sepia);padding-bottom:2px;margin-top:10px;}
+#victory .vwin{position:absolute;top:20%;font-size:56px;font-weight:bold;letter-spacing:5px;font-variant:small-caps;text-shadow:0 3px 0 rgba(242,232,213,.6);}
+#victory .vmenu{position:absolute;bottom:16%;font-size:18px;letter-spacing:2px;}#victory .vmenu .k{color:var(--verm);font-weight:bold;}
+.hint{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);font-size:13px;letter-spacing:1px;opacity:.75;}
+.mute-tag{position:fixed;top:8px;right:12px;font-family:"Courier New",monospace;font-size:12px;color:var(--sepia);z-index:30;}`;
+    document.head.appendChild(style);
+  }
+
+  // 2) render root — reuse the host's #game if present, else create it
+  if (!document.getElementById('game')) {
+    const g = document.createElement('div');
+    g.id = 'game';
+    document.body.appendChild(g);
+  }
+
+  // 3) HUD + screens (skip if the host page already provided the HUD)
+  if (!document.getElementById('hud')) {
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `
+<div id="hud" class="hidden">
+  <div class="hud-top">
+    <div class="fighter-panel left">
+      <div class="name-row" id="p1name">&mdash;</div>
+      <div class="harmony-track"><div class="harmony-fill" id="p1hp"></div><div class="harmony-flash" id="p1flash"></div></div>
+      <div class="cres-wrap"><svg id="p1cres" width="150" height="16"></svg></div>
+      <div class="rounds" id="p1rounds"></div>
+    </div>
+    <div class="hud-center"><div class="round-timer" id="rtimer">60</div><div class="movement-label" id="mvmt">Movement I</div></div>
+    <div class="fighter-panel right">
+      <div class="name-row" id="p2name">&mdash;</div>
+      <div class="harmony-track"><div class="harmony-fill right" id="p2hp"></div><div class="harmony-flash" id="p2flash"></div></div>
+      <div class="cres-wrap" style="text-align:right"><svg id="p2cres" width="150" height="16"></svg></div>
+      <div class="rounds" id="p2rounds" style="text-align:right"></div>
+    </div>
+  </div>
+  <div id="announce"></div>
+  <div class="hint" id="fighthint">C D E F G A B = notes/attacks &nbsp;&middot;&nbsp; &larr;&rarr; move &nbsp;&middot;&nbsp; &uarr; jump &nbsp;&middot;&nbsp; &darr; crouch &nbsp;&middot;&nbsp; Space dash &nbsp;&middot;&nbsp; Shift sidestep &nbsp;&middot;&nbsp; P pause</div>
+</div>
+<div class="mute-tag" id="mutetag">M: sound on</div>
+<div id="title" class="screen"><div class="logo-sub">&mdash; press any key &mdash;</div></div>
+<div id="select" class="screen hidden">
+  <div class="sel-head">Choose Your Maestro</div>
+  <div class="side-label" id="sideLabel">SELECTING: YOU (Player)</div>
+  <div class="diffbox" id="diffbox"></div>
+  <div class="roster" id="roster"></div>
+  <div class="stage-row" id="stagerow"></div>
+</div>
+<div id="pause" class="screen hidden">
+  <div class="box">
+    <h2>Paused &mdash; Score &amp; Movelist</h2>
+    <div class="cols">
+      <div class="col">
+        <div class="ctrl">
+          <b>CONTROLS</b><br>
+          C D E F G A B &mdash; sound a note / attack (low&rarr;high pitch = low&rarr;high hit)<br>
+          Sequence of 3&ndash;5 notes in 2s &mdash; special motif<br>
+          Hold a triad (C+E+G / F+A+C / G+B+D) &mdash; block<br>
+          A perfect fifth (e.g. C+G) vs a special &mdash; parry<br>
+          &larr; &rarr; walk &middot; &uarr; jump &middot; &darr; crouch<br>
+          Space &mdash; ink-dash (i-frames, 3s cd)<br>
+          Shift &mdash; sidestep dodge (dodges projectiles, 4s cd)<br>
+          M mute &middot; P/Esc pause &middot; full crescendo + masterwork = FINALE
+        </div>
+      </div>
+      <div class="col" id="movelistCol"></div>
+    </div>
+    <p style="text-align:center;margin-top:12px;font-variant:small-caps;letter-spacing:2px">P / Esc &mdash; resume</p>
+  </div>
+</div>
+<div id="victory" class="screen hidden">
+  <div class="vwin" id="vwin">Victory</div>
+  <div class="vmenu"><span class="k">R</span> rematch &nbsp;&middot;&nbsp; <span class="k">S</span> select &nbsp;&middot;&nbsp; <span class="k">T</span> title</div>
+</div>`;
+    while (wrap.firstChild) document.body.appendChild(wrap.firstChild);
+  }
+}
+
 /* ================================ BOOT ================================== */
-App.init();
-App.wire();
+function boot() {
+  mountUI();   // inject CSS + HUD before the engine looks anything up
+  App.init();
+  App.wire();
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
+}
