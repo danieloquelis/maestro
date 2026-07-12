@@ -25,7 +25,7 @@ gets it (OTA-style).
 The hosted `index.html` loads:
 
 ```
-https://cdn.jsdelivr.net/gh/danieloquelis/maestro@latest/dist/maestro.js
+https://cdn.jsdelivr.net/gh/danieloquelis/maestro@main/dist/maestro.js
 ```
 
 ## Develop
@@ -53,17 +53,17 @@ git commit -am "feat: …" && git push
 
 Or the one-liner: `npm run release`.
 
-jsDelivr caches `@latest` for ~12h. To force every player onto the new bundle
-immediately, hit the purge endpoint once after pushing:
+jsDelivr caches `@main` at the CDN edge. To force every player onto the new
+bundle immediately, hit the purge endpoint once after pushing:
 
 ```
-https://purge.jsdelivr.net/gh/danieloquelis/maestro@latest/dist/maestro.js
+https://purge.jsdelivr.net/gh/danieloquelis/maestro@main/dist/maestro.js
 ```
 
 ## Pin a frozen version
 
 For a release you don't want silently changing, tag it and point the HTML at the
-tag instead of `@latest`:
+tag instead of `@main`:
 
 ```bash
 git tag v1.0.0 && git push --tags

@@ -9,9 +9,10 @@
   <div id="game"></div>
 
   <!-- The bundle injects its own CSS + HUD and renders the whole game.
-       Push a new dist/maestro.js to the repo and every player updates (OTA).
-       Force-refresh the CDN cache after a push (jsDelivr caches ~12h):
-       https://purge.jsdelivr.net/gh/danieloquelis/maestro@latest/dist/maestro.js -->
-  <script src="https://cdn.jsdelivr.net/gh/danieloquelis/maestro@latest/dist/maestro.js"></script>
+       @main = tip of the main branch: every push is an OTA update.
+       (Do NOT use @latest for a GitHub repo without git tags — it resolves to
+       null and caches unpredictably.) Force-refresh the CDN cache after a push:
+       https://purge.jsdelivr.net/gh/danieloquelis/maestro@main/dist/maestro.js -->
+  <script src="https://cdn.jsdelivr.net/gh/danieloquelis/maestro@main/dist/maestro.js"></script>
 </body>
 </html>
